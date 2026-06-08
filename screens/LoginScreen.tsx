@@ -1,9 +1,38 @@
 import React,{useState} from 'react';
 import { View,Text,TextInput,TouchableOpacity,StyleSheet , } from "react-native";
 
+import {router} from 'expo-router';
+
+import app from '../firebase/config';
+
+import {
+  signInWithEmailAndPassword
+}from 'firebase/auth';
+
+import { signOut, getAuth } from 'firebase/auth';
+
+
 export default function LoginScreen(){
     const [email,setEmail] = useState('');
     const [password , setPassword] = useState('');
+    const auth = getAuth(app);
+    
+    const handleLogin = async() => {
+      try {
+        await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+
+        alert("Login successfull");
+
+        router.replace('/home');
+      }catch(error : any){
+        alert(error.message);
+      }
+    };
+
 
     return(
         <View style={styles.container}>
@@ -29,13 +58,15 @@ export default function LoginScreen(){
             secureTextEntry
             style={styles.input}
             />
-            <TouchableOpacity style={styles.loginButton}>
+            <TouchableOpacity style={styles.loginButton}
+            onPress={handleLogin}>
                 <Text style={styles.buttonText}>
                     Login
                 </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity>
+            <TouchableOpacity
+             onPress={() => router.push('/signup')}>
                 <Text style={styles.signupText}>
                     Don't have an account? Sign Up
                 </Text>

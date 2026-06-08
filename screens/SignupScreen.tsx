@@ -1,17 +1,60 @@
-import React , {useState} from 'react';
-import{
-    View, 
-    Text,
-    TextInput,
-    TouchableOpacity,
-    StyleSheet,
+import React, { useState } from 'react';
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
+
+import { router } from 'expo-router';
+
+import app from '../firebase/config';
+
+import {
+  createUserWithEmailAndPassword,
+  getAuth,
+  updateProfile
+} from 'firebase/auth';
+
 
 export default function SignupScreen(){
      const [name , setName] = useState('');
      const [email,setEmail] = useState('');
      const[password,setPassword] = useState(''); 
      const[confirmPassword , setConfirmPassword] = useState('');
+
+     const auth = getAuth(app);
+
+     const handleSignup = async () => {
+           if (password !== confirmPassword) {
+          alert("Passwords do not match");
+           return;
+            }
+
+            try {
+             const userCredential =
+             await createUserWithEmailAndPassword(
+              auth,
+              email,
+              password
+          );
+
+           await updateProfile(
+          userCredential.user,
+            {
+               displayName: name,
+              }
+               );
+
+          alert("Account created successfully");
+ 
+           router.replace('/home');
+
+        } catch (error: any) {
+            alert(error.message);
+              }
+          };
 
      return (
 
@@ -52,13 +95,15 @@ export default function SignupScreen(){
                 style={styles.input}
                 />
 
-                <TouchableOpacity style={styles.signupButton}>
+                <TouchableOpacity style={styles.signupButton}
+                onPress={handleSignup}>
                    <Text style={styles.buttonText}>
                     Sign Up
                    </Text>
                     </TouchableOpacity> 
 
-                    <TouchableOpacity>
+                    <TouchableOpacity 
+                    onPress={() => router.push('/login')}>
         <Text style={styles.loginText}>
           Already have an account? Login
         </Text>
