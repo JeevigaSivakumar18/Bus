@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { getAuth, signOut } from 'firebase/auth';
@@ -47,7 +48,7 @@ export default function HomeScreen() {
   const [destinationLng, setDestinationLng] = useState(0);
   const [destinationName, setDestinationName] = useState('');
 
-
+  const[remainingDistance , setRemainingDistance] = useState(0);
   // Controls the visible map region — must be state, not hardcoded
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: 11.3428,
@@ -59,12 +60,14 @@ export default function HomeScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [journeyStarted, setJourneyStarted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [totalDistance, setTotalDistance] = useState(0);
 
   const mapRef = useRef<MapView>(null);
 
+  const startingDistanceRef = useRef(0);
+
   // Stores the live position watcher so we can stop it later
   const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
+  
 
   const auth = getAuth();
 
@@ -262,7 +265,21 @@ const stopJourney = () => {
     }
 
     setJourneyStarted(true);
-    Alert.alert('Journey Started', `Alarm set for ${alarmDistance} from destination.`);
+    if (latitude === 0 || longitude === 0) {
+  Alert.alert(
+    "Location Required",
+    "Please tap 'Detect Location' first."
+  );
+  return;
+}
+
+setJourneyStarted(true);
+
+Alert.alert(
+  'Journey Started',
+  `Alarm set for ${alarmDistance} from destination.`
+);
+}
 
     const initialDistance = getDistanceKm(
   latitude,
@@ -271,9 +288,13 @@ const stopJourney = () => {
   destinationLng
 );
 
-setTotalDistance(initialDistance);
 
-const startingDistance = initialDistance;
+
+startingDistanceRef.current = initialDistance;
+
+setRemainingDistance(initialDistance);
+
+
 
     // Start watching position
     locationWatcherRef.current = await Location.watchPositionAsync(
@@ -296,13 +317,22 @@ const startingDistance = initialDistance;
         }, 300);
 
         // Calculate distance to destination
-        const distanceKm = getDistanceKm(lat, lng, destinationLat, destinationLng);
+       
+    const distanceKm = getDistanceKm(
+  lat,
+  lng,
+  destinationLat,
+  destinationLng
+);
 
-       if (startingDistance > 0) {
+// update remaining distance text
+setRemainingDistance(distanceKm);
+
+if (startingDistanceRef.current > 0) {
 
   const completed =
-    ((startingDistance - distanceKm)
-      / startingDistance) * 100;
+    ((startingDistanceRef.current - distanceKm)
+      / startingDistanceRef.current) * 100;
 
   setProgress(
     Math.min(
@@ -341,37 +371,34 @@ const startingDistance = initialDistance;
   // Replace this Alert with expo-notifications for a real alarm sound
   // You'll need: expo install expo-notifications
   // ─────────────────────────────────────────────
-  const triggerAlarm = (currentDist: number, alarmDist: number) => {
-    // Stop the watcher so alarm doesn't fire repeatedly
-    if (locationWatcherRef.current) {
-      locationWatcherRef.current.remove();
-      locationWatcherRef.current = null;
-    }
+  const triggerAlarm = (
+  currentDist: number,
+  alarmDist: number
+) => {
+  if (locationWatcherRef.current) {
+    locationWatcherRef.current.remove();
+    locationWatcherRef.current = null;
+  }
 
-     Vibration.vibrate(
-  [500,500,500,500,500,500],
-  true
-);
+  Vibration.vibrate(
+    [500, 500, 500, 500, 500, 500],
+    true
+  );
 
+  Alert.alert(
+    "Wake Up!",
+    "Destination Nearby",
+    [
+      {
+        text: "Stop Alarm",
+        onPress: () => Vibration.cancel(),
+      },
+    ]
+  );
 
-Alert.alert(
-  "Wake Up!",
-  "Destination Nearby",
-  [
-    {
-      text: "Stop Alarm",
-      onPress: () => Vibration.cancel()
-    }
-  ]
-);
-
-    // TODO: Replace with expo-notifications scheduled notification:
-    // await Notifications.scheduleNotificationAsync({
-    //   content: { title: "Wake Up!", body: `${alarmDist}km from destination` },
-    //   trigger: null, // immediate
-    // });
-  };
-
+  setJourneyStarted(false);
+  setProgress(100);
+};
   
 
   return (
@@ -487,7 +514,7 @@ Alert.alert(
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progress}%` }]} />
         </View>
-        <Text style={styles.progressText}>{Math.round(progress)}% Completed</Text>
+        <Text style={styles.progressText}>{remainingDistance.toFixed(2)} km Remaining</Text>
       </View>
 
       {/* Start / Stop Journey */}
