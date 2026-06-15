@@ -1,5 +1,7 @@
 import React, { useRef, useState } from 'react';
 
+import SideMenu from "../components/SideMenu";
+
 import { Stack } from "expo-router";
 
 import {
@@ -12,6 +14,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Vibration,
 } from 'react-native';
 
 import * as Location from 'expo-location';
@@ -72,6 +75,7 @@ export default function HomeScreen() {
 
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const [menuVisible, setMenuVisible] = useState(false);
 
   const slideAnim = useRef(
   new Animated.Value(-250)
@@ -380,14 +384,8 @@ const closeMenu = () => {
       showsVerticalScrollIndicator={false}
     >
 
-      <TouchableOpacity
-  onPress={() => {
-    if (menuOpen) {
-      closeMenu();
-    } else {
-      openMenu();
-    }
-  }}
+     <TouchableOpacity
+  onPress={() => setMenuVisible(true)}
   style={{
     position: "absolute",
     top: 50,
@@ -399,48 +397,18 @@ const closeMenu = () => {
     style={{
       fontSize: 32,
       fontWeight: "bold",
-      color: "black",
     }}
   >
     ☰
   </Text>
 </TouchableOpacity>
 
-    {menuOpen && (
-  <TouchableOpacity
-    style={styles.overlay}
-    activeOpacity={1}
-    onPress={closeMenu}
-  >
-    <Animated.View
-      style={[
-        styles.sidebar,
-        { left: slideAnim }
-      ]}
-    >
+<SideMenu
+  visible={menuVisible}
+  onClose={() => setMenuVisible(false)}
+/>
 
-      <Text style={styles.sidebarItem}>Home</Text>
-
-      <Text style={styles.sidebarItem}>Trips</Text>
-
-      <Text style={styles.sidebarItem}>Alarm</Text>
-
-      <Text style={styles.sidebarItem}>Alert</Text>
-
-      <Text style={styles.sidebarItem}>Offline</Text>
-
-      <TouchableOpacity
-        style={styles.sidebarLogout}
-        onPress={handleLogout}
-      >
-        <Text style={{ color: "white" }}>
-          Logout
-        </Text>
-      </TouchableOpacity>
-
-    </Animated.View>
-  </TouchableOpacity>
-)}
+    
       {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.greeting}>
