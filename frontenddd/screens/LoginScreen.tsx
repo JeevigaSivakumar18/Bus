@@ -4,6 +4,7 @@ import { View,Text,TextInput,TouchableOpacity,StyleSheet , } from "react-native"
 import {router} from 'expo-router';
 
 import API from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 
 export default function LoginScreen(){
@@ -18,9 +19,18 @@ const handleLogin = async () => {
       password,
     });
 
-    alert("Login Successful");
+    const { token, user } = res.data;
 
-    router.replace("/home");
+await AsyncStorage.setItem("token", token);
+
+await AsyncStorage.setItem(
+  "user",
+  JSON.stringify(user)
+);
+
+alert("Login Successful");
+
+router.replace("/home");
 
   } catch (err:any) {
 

@@ -1,20 +1,28 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import API from "../services/api";
 
 import SideMenu from "../components/SideMenu";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 
+type User = {
+  id: string;
+  name: string;
+  email: string;
+};
+
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    Vibration,
-    View,
+  Alert,
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Vibration,
+  View,
 } from 'react-native';
 
 import * as Location from 'expo-location';
@@ -75,9 +83,27 @@ export default function HomeScreen() {
 
   const [menuVisible, setMenuVisible] = useState(false);
 
+
+  const [user, setUser] =  useState<User | null>(null);
+
+useEffect(() => {
+  const loadUser = async () => {
+    const data = await AsyncStorage.getItem("user");
+
+    if (data) {
+      setUser(JSON.parse(data));
+    }
+  };
+
+  loadUser();
+}, []);
+
+
   const slideAnim = useRef(
   new Animated.Value(-250)
 ).current;
+
+
 
   // ─────────────────────────────────────────────
   // Logout
@@ -121,15 +147,30 @@ export default function HomeScreen() {
       setMapRegion(newRegion);
       mapRef.current?.animateToRegion(newRegion, 800);
 
-      const address = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      if (address.length > 0) {
-        setCurrentLocation(`${address[0].city}, ${address[0].region}`);
-      }
-    } catch (error) {
-      console.error('getCurrentLocation error:', error);
-      Alert.alert('Error', 'Could not get your location.');
-    }
-  };
+     try {
+  const address = await Location.reverseGeocodeAsync({
+    latitude: lat,
+    longitude: lng,
+  });
+
+  if (address.length > 0) {
+    setCurrentLocation(
+      `${address[0].city}, ${address[0].region}`
+    );
+  }
+} catch (err) {
+  console.log("Reverse geocode failed:", err);
+
+  setCurrentLocation(
+    `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+  );
+}
+  }
+  catch (error) {
+  console.error("getCurrentLocation error:", error);
+  Alert.alert("Error", "Could not get your location.");
+}
+    };
 
   // ─────────────────────────────────────────────
   // Search destination — Photon API (no key, no User-Agent needed)
@@ -211,7 +252,7 @@ export default function HomeScreen() {
   // ─────────────────────────────────────────────
   // Alarm trigger — vibrate + alert
   // ─────────────────────────────────────────────
-  const triggerAlarm = (currentDist: number, alarmDist: number) => {
+  const triggerAlarm = async (currentDist: number, alarmDist: number) => {
     // Stop watcher so this doesn't fire repeatedly
     if (locationWatcherRef.current) {
       locationWatcherRef.current.remove();
@@ -219,7 +260,8 @@ export default function HomeScreen() {
     }
 
     Vibration.vibrate([500, 500, 500, 500, 500, 500], true);
-
+    
+    await saveTrip();
     Alert.alert(
       '⏰ Wake Up!',
       `You are ${currentDist.toFixed(1)} km from your destination!`,
@@ -230,10 +272,32 @@ export default function HomeScreen() {
     setProgress(100);
   };
 
+  const saveTrip = async () => {
+  try {
+    const data = await AsyncStorage.getItem("user");
+
+    if (!data) return;
+
+    const user = JSON.parse(data);
+
+    await API.post("/trips", {
+      user: user.id,
+      from: currentLocation,
+      destination: destinationName,
+      distance: startingDistanceRef.current,
+      alarmDistance: alarmDistance,
+    });
+
+    console.log("Trip Saved");
+  } catch (err) {
+    console.log(err);
+  }
+};
+
   // ─────────────────────────────────────────────
   // Stop Journey
   // ─────────────────────────────────────────────
-  const stopJourney = () => {
+  const stopJourney = async() => {
     if (locationWatcherRef.current) {
       locationWatcherRef.current.remove();
       locationWatcherRef.current = null;
@@ -241,6 +305,7 @@ export default function HomeScreen() {
     setJourneyStarted(false);
     setProgress(0);
     setRemainingDistance(0);
+    await saveTrip();
     Alert.alert('Journey Stopped', 'Tracking has been stopped.');
   };
 
@@ -306,7 +371,7 @@ export default function HomeScreen() {
         accuracy: Location.Accuracy.Balanced,
         distanceInterval: 50,
       },
-      (location) => {
+      async(location) => {
         const { latitude: lat, longitude: lng } = location.coords;
 
         setLatitude(lat);
@@ -338,7 +403,7 @@ export default function HomeScreen() {
 
         // Alarm check
         if (distanceKm <= alarmKm) {
-          triggerAlarm(distanceKm, alarmKm);
+          await triggerAlarm(distanceKm, alarmKm);
         }
       }
     );
@@ -409,7 +474,7 @@ const closeMenu = () => {
       {/* Header */}
       <View style={styles.headerCard}>
         <Text style={styles.greeting}>
-          Hi {'Traveller'}
+          Hi {user?.name}👋
         </Text>
         <Text style={styles.headerSubtitle}>Ready for your journey?</Text>
       </View>
