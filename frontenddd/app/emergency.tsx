@@ -1,41 +1,8 @@
-import { View, Text, StyleSheet } from "react-native";
+import EmergencyScreen from "../screens/EmergencyScreen";
+import HomeScreen from "../screens/EmergencyScreen";
 
-export default function EmergencyScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Emergency Screen</Text>
-    </View>
-  );
+export default function emergency(){
+    return(
+        <EmergencyScreen />
+    )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-});import { View, Text, StyleSheet } from "react-native";
-
-export default function EmergencyScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Emergency Screen</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-});
