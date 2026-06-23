@@ -29,6 +29,8 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import MapView, { Marker, Region } from 'react-native-maps';
 
+import { Audio } from "expo-av";
+
 // ─────────────────────────────────────────────
 // Haversine — returns distance in km
 // ─────────────────────────────────────────────
@@ -48,9 +50,21 @@ function getDistanceKm(
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+const sounds = {
+  Bell: require("../assets/bell.mp3"),
+  Siren: require("../assets/siren.mp3"),
+  Beep: require("../assets/beep.mp3"),
+  Voice: require("../assets/voice.mp3"),
+};
+
 export default function HomeScreen() {
   const [destination, setDestination] = useState('');
-  const [alarmDistance, setAlarmDistance] = useState('');
+  const [alarmDistance, setAlarmDistance] = useState("");
+
+const [alarmSound, setAlarmSound] =
+  useState<"Bell" | "Siren" | "Beep" | "Voice">("Bell");
+
+const [alarmVolume, setAlarmVolume] = useState(0.8);
   const [currentLocation, setCurrentLocation] = useState('');
 
   const [latitude, setLatitude] = useState(0);
@@ -96,6 +110,23 @@ useEffect(() => {
   };
 
   loadUser();
+
+
+  const loadAlarmSettings = async () => {
+  const d = await AsyncStorage.getItem("alarmDistance");
+  const s = await AsyncStorage.getItem("alarmSound");
+  const v = await AsyncStorage.getItem("alarmVolume");
+
+  if (d) setAlarmDistance(d);
+
+  if (s && s in sounds) {
+    setAlarmSound(s as keyof typeof sounds);
+  }
+
+  if (v) setAlarmVolume(Number(v));
+};
+
+loadAlarmSettings();
 }, []);
 
 
@@ -252,25 +283,48 @@ useEffect(() => {
   // ─────────────────────────────────────────────
   // Alarm trigger — vibrate + alert
   // ─────────────────────────────────────────────
-  const triggerAlarm = async (currentDist: number, alarmDist: number) => {
-    // Stop watcher so this doesn't fire repeatedly
-    if (locationWatcherRef.current) {
-      locationWatcherRef.current.remove();
-      locationWatcherRef.current = null;
-    }
+  const triggerAlarm = async (
+  currentDist: number,
+  alarmDist: number
+) => {
+  if (locationWatcherRef.current) {
+    locationWatcherRef.current.remove();
+    locationWatcherRef.current = null;
+  }
 
-    Vibration.vibrate([500, 500, 500, 500, 500, 500], true);
-    
-    await saveTrip();
-    Alert.alert(
-      '⏰ Wake Up!',
-      `You are ${currentDist.toFixed(1)} km from your destination!`,
-      [{ text: 'Stop Alarm', onPress: () => Vibration.cancel() }]
+  try {
+    const { sound } = await Audio.Sound.createAsync(
+      sounds[alarmSound]
     );
 
-    setJourneyStarted(false);
-    setProgress(100);
-  };
+    await sound.setVolumeAsync(alarmVolume);
+
+    await sound.playAsync();
+
+    sound.setOnPlaybackStatusUpdate((status) => {
+      if (status.isLoaded && status.didJustFinish) {
+        sound.unloadAsync();
+      }
+    });
+  } catch (err) {
+    console.log(err);
+  }
+
+  await saveTrip();
+
+  Alert.alert(
+    "Wake Up!",
+    `You are ${currentDist.toFixed(2)} km away.`,
+    [
+      {
+        text: "Stop Alarm",
+      },
+    ]
+  );
+
+  setJourneyStarted(false);
+  setProgress(100);
+};
 
   const saveTrip = async () => {
   try {
@@ -335,9 +389,12 @@ useEffect(() => {
     }
 
     if (!alarmDistance) {
-      Alert.alert('No Alarm Distance', 'Please select 1km, 2km, or 5km.');
-      return;
-    }
+  Alert.alert(
+    "Alarm Not Configured",
+    "Go to Alarm Settings and save an alarm distance."
+  );
+  return;
+}
 
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
@@ -363,7 +420,17 @@ useEffect(() => {
       `${initialDistance.toFixed(1)} km to destination.\nAlarm at ${alarmDistance}.`
     );
 
-    const alarmKm = parseFloat(alarmDistance.replace('km', ''));
+    let alarmKm = 2;
+
+if (alarmDistance === "500 m") {
+  alarmKm = 0.5;
+} else if (alarmDistance === "1 km") {
+  alarmKm = 1;
+} else if (alarmDistance === "2 km") {
+  alarmKm = 2;
+} else if (alarmDistance === "5 km") {
+  alarmKm = 5;
+}
 
     // --- Start live position watcher ---
     locationWatcherRef.current = await Location.watchPositionAsync(
@@ -539,21 +606,7 @@ const closeMenu = () => {
         </Text>
       </View>
 
-      {/* Alarm Distance */}
-      <Text style={styles.label}>⏰ Wake Up Distance</Text>
-      <View style={styles.distanceContainer}>
-        {['1km', '2km', '5km'].map((d) => (
-          <TouchableOpacity
-            key={d}
-            style={[styles.distanceButton, alarmDistance === d && styles.selectedButton]}
-            onPress={() => setAlarmDistance(d)}
-          >
-            <Text style={alarmDistance === d ? styles.selectedButtonText : {}}>
-              {d}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      
 
       {/* Progress Card */}
       <View style={styles.progressCard}>
