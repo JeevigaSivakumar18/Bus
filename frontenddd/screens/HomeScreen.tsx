@@ -6,6 +6,9 @@ import SideMenu from "../components/SideMenu";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+
 type User = {
   id: string;
   name: string;
@@ -59,7 +62,7 @@ const sounds = {
 
 export default function HomeScreen() {
   const [destination, setDestination] = useState('');
-  const [alarmDistance, setAlarmDistance] = useState("");
+  const [alarmDistance, setAlarmDistance] = useState("2 km");
 
 const [alarmSound, setAlarmSound] =
   useState<"Bell" | "Siren" | "Beep" | "Voice">("Bell");
@@ -89,7 +92,7 @@ const [alarmVolume, setAlarmVolume] = useState(0.8);
   const mapRef = useRef<MapView>(null);
   const startingDistanceRef = useRef(0);
   const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
-
+  const alarmSoundRef = useRef<Audio.Sound | null>(null); 
 
   const screenWidth = Dimensions.get("window").width;
 
@@ -110,29 +113,24 @@ useEffect(() => {
   };
 
   loadUser();
+},[]);
 
 
-  const loadAlarmSettings = async () => {
-  const d = await AsyncStorage.getItem("alarmDistance");
-  const s = await AsyncStorage.getItem("alarmSound");
-  const v = await AsyncStorage.getItem("alarmVolume");
+  useFocusEffect(
+  useCallback(() => {
+    const loadAlarmSettings = async () => {
+      const d = await AsyncStorage.getItem("alarmDistance");
+      const s = await AsyncStorage.getItem("alarmSound");
+      const v = await AsyncStorage.getItem("alarmVolume");
 
-  if (d) setAlarmDistance(d);
+      if (d) setAlarmDistance(d);
+      if (s && s in sounds) setAlarmSound(s as keyof typeof sounds);
+      if (v) setAlarmVolume(Number(v));
+    };
 
-  if (s && s in sounds) {
-    setAlarmSound(s as keyof typeof sounds);
-  }
-
-  if (v) setAlarmVolume(Number(v));
-};
-
-loadAlarmSettings();
-}, []);
-
-
-  const slideAnim = useRef(
-  new Animated.Value(-250)
-).current;
+    loadAlarmSettings();
+  }, [])
+);
 
 
 
@@ -283,69 +281,48 @@ loadAlarmSettings();
   // ─────────────────────────────────────────────
   // Alarm trigger — vibrate + alert
   // ─────────────────────────────────────────────
-  const triggerAlarm = async (
-  currentDist: number,
-  alarmDist: number
-) => {
+ const triggerAlarm = async (currentDist: number, alarmDist: number) => {
   if (locationWatcherRef.current) {
     locationWatcherRef.current.remove();
     locationWatcherRef.current = null;
   }
 
   try {
-    const { sound } = await Audio.Sound.createAsync(
-      sounds[alarmSound]
-    );
+    const { sound } = await Audio.Sound.createAsync(sounds[alarmSound]);
+    alarmSoundRef.current = sound; // store it so we can stop it
 
     await sound.setVolumeAsync(alarmVolume);
-
     await sound.playAsync();
 
     sound.setOnPlaybackStatusUpdate((status) => {
       if (status.isLoaded && status.didJustFinish) {
         sound.unloadAsync();
+        alarmSoundRef.current = null;
       }
     });
   } catch (err) {
-    console.log(err);
+    console.log("Sound error:", err);
   }
 
   await saveTrip();
 
   Alert.alert(
-    "Wake Up!",
-    `You are ${currentDist.toFixed(2)} km away.`,
-    [
-      {
-        text: "Stop Alarm",
+    "⏰ Wake Up!",
+    `You are ${currentDist.toFixed(2)} km from your destination!`,
+    [{
+      text: "Stop Alarm",
+      onPress: async () => {
+        if (alarmSoundRef.current) {
+          await alarmSoundRef.current.stopAsync();
+          await alarmSoundRef.current.unloadAsync();
+          alarmSoundRef.current = null;
+        }
       },
-    ]
+    }]
   );
 
   setJourneyStarted(false);
   setProgress(100);
-};
-
-  const saveTrip = async () => {
-  try {
-    const data = await AsyncStorage.getItem("user");
-
-    if (!data) return;
-
-    const user = JSON.parse(data);
-
-    await API.post("/trips", {
-      user: user.id,
-      from: currentLocation,
-      destination: destinationName,
-      distance: startingDistanceRef.current,
-      alarmDistance: alarmDistance,
-    });
-
-    console.log("Trip Saved");
-  } catch (err) {
-    console.log(err);
-  }
 };
 
   // ─────────────────────────────────────────────
@@ -376,6 +353,32 @@ loadAlarmSettings();
   // BUG FIXED: Early return for missing location was after setJourneyStarted(true)
   // so the button would get stuck in "Stop Journey" state even on early exit.
   // ─────────────────────────────────────────────
+
+  // Add this function inside your HomeScreen component
+const saveTrip = async () => {
+  try {
+    if (!user) return;
+
+    await API.post("/trips/save", {
+      user: user.id,
+      destination: destinationName,
+      destinationLat,
+      destinationLng,
+      startLat: latitude,
+      startLng: longitude,
+      alarmDistance,
+      stoppedAt: new Date().toISOString(),
+    });
+
+  } catch (err) {
+    console.log("saveTrip error:", err);
+    // Silent fail — don't block the alarm/stop flow
+  }
+};
+
+
+
+
   const startJourney = async () => {
     // --- All validation BEFORE any state changes ---
     if (latitude === 0 || longitude === 0) {
@@ -420,18 +423,24 @@ loadAlarmSettings();
       `${initialDistance.toFixed(1)} km to destination.\nAlarm at ${alarmDistance}.`
     );
 
-    let alarmKm = 2;
+    
 
-if (alarmDistance === "500 m") {
-  alarmKm = 0.5;
-} else if (alarmDistance === "1 km") {
-  alarmKm = 1;
-} else if (alarmDistance === "2 km") {
-  alarmKm = 2;
-} else if (alarmDistance === "5 km") {
-  alarmKm = 5;
+    const alarmKmMap: Record<string, number> = {
+  "500 m": 0.5,
+  "1 km": 1,
+  "2 km": 2,
+  "5 km": 5,
+};
+
+const alarmKm = alarmKmMap[alarmDistance];
+
+if (!alarmKm) {
+  Alert.alert(
+    "Alarm Not Configured",
+    "Go to Alarm Settings and save a distance first."
+  );
+  return;
 }
-
     // --- Start live position watcher ---
     locationWatcherRef.current = await Location.watchPositionAsync(
       {
