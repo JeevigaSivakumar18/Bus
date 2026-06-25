@@ -15,6 +15,7 @@ import API from "../services/api";
 export default function SignupScreen(){
      const [name , setName] = useState('');
      const [email,setEmail] = useState('');
+     const [phone, setPhone] = useState('');
      const[password,setPassword] = useState(''); 
      const[confirmPassword , setConfirmPassword] = useState('');
 
@@ -26,13 +27,19 @@ const handleSignup = async () => {
         return;
     }
 
+    if (phone.trim().length < 10) {
+  alert("Enter a valid phone number");
+  return;
+}
+
     try{
 
         await API.post("/users/register",{
 
             name,
             email,
-            password
+            phone,
+            password,
 
         });
 
@@ -75,6 +82,14 @@ const handleSignup = async () => {
               value={email}
               onChangeText={setEmail}
               style={styles.input}/>
+
+              <TextInput
+  placeholder="Phone Number"
+  value={phone}
+  onChangeText={setPhone}
+  keyboardType="phone-pad"
+  style={styles.input}
+/>
 
               <TextInput
               placeholder='Password'

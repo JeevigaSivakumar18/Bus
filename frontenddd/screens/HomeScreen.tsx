@@ -17,15 +17,12 @@ type User = {
 
 import {
   Alert,
-  Animated,
-  Dimensions,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Vibration,
-  View,
+  View
 } from 'react-native';
 
 import * as Location from 'expo-location';
@@ -94,9 +91,6 @@ const [alarmVolume, setAlarmVolume] = useState(0.8);
   const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
   const alarmSoundRef = useRef<Audio.Sound | null>(null); 
 
-  const screenWidth = Dimensions.get("window").width;
-
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -359,7 +353,7 @@ const saveTrip = async () => {
   try {
     if (!user) return;
 
-    await API.post("/trips/save", {
+    await API.post("/trips", {
       user: user.id,
       destination: destinationName,
       destinationLat,
@@ -489,26 +483,6 @@ if (!alarmKm) {
   // RENDER
   // ─────────────────────────────────────────────
 
-
-  const openMenu = () => {
-  setMenuOpen(true);
-
-  Animated.timing(slideAnim, {
-    toValue: 0,
-    duration: 300,
-    useNativeDriver: false,
-  }).start();
-};
-
-const closeMenu = () => {
-  Animated.timing(slideAnim, {
-    toValue: -250,
-    duration: 300,
-    useNativeDriver: false,
-  }).start(() => {
-    setMenuOpen(false);
-  });
-};
   return (
     <>
     <Stack.Screen
@@ -802,54 +776,4 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-  menuButton: {
-  position: "absolute",
-  top: 20,
-  right: 20,
-  zIndex: 100,
-},
-
-menuIcon: {
-  color: "white",
-  fontSize: 28,
-  fontWeight: "bold",
-},
-
-overlay: {
-  position: "absolute",
-  top: 0,
-  bottom: 0,
-  left: 0,
-  right: 0,
-  zIndex: 999,
-},
-
-sidebar: {
-  position: "absolute",
-  top: 0,
-  bottom: 0,
-  width: 250,
-  backgroundColor: "white",
-  paddingTop: 120,
-  paddingHorizontal: 20,
-},
-
-closeBtn: {
-  fontSize: 24,
-  marginBottom: 30,
-},
-
-sidebarItem: {
-  fontSize: 18,
-  marginBottom: 25,
-  color: "#333",
-},
-
-sidebarLogout: {
-  marginTop: 30,
-  backgroundColor: "#D2691E",
-  padding: 12,
-  borderRadius: 10,
-  alignItems: "center",
-},
 });
