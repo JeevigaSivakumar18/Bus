@@ -19,10 +19,12 @@ const userSchema = new mongoose.Schema(
             type : String , 
             required : true ,
         },
-        contacts:{
-        type:[String],
-        default:[]
-    }
+    emergencyContacts: [
+  {
+    name: String,
+    phone: String,
+  },
+],
     },
     {
         timestamps : true,
