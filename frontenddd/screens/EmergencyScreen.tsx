@@ -1,4 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import * as SMS from "expo-sms";
 import React, { useEffect, useState } from "react";
 import {
   Alert,
@@ -65,6 +67,71 @@ export default function EmergencyScreen() {
       console.log("loadContacts error:", err.response?.data || err.message);
     }
   };
+
+
+const sendSOS = async () => {
+  try {
+    const isAvailable = await SMS.isAvailableAsync();
+
+    if (!isAvailable) {
+      alert("SMS is not available on this device.");
+      return;
+    }
+
+    const { status } =
+      await Location.requestForegroundPermissionsAsync();
+
+    if (status !== "granted") {
+      alert("Location permission denied.");
+      return;
+    }
+
+    const location =
+      await Location.getCurrentPositionAsync({});
+
+    const latitude = location.coords.latitude;
+    const longitude = location.coords.longitude;
+
+    const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
+
+    const userData = await AsyncStorage.getItem("user");
+
+    if (!userData) {
+      alert("Please login again.");
+      return;
+    }
+
+    const user = JSON.parse(userData);
+
+    const numbers = [
+      contact1Phone,
+      contact2Phone,
+      contact3Phone,
+    ].filter((n) => n.trim() !== "");
+
+    if (numbers.length === 0) {
+      alert("No emergency contacts found.");
+      return;
+    }
+
+    const message = `🚨 EMERGENCY ALERT!
+
+${user.name} needs immediate assistance.
+
+Phone: ${user.phone}
+
+Current Location:
+${mapsLink}
+
+This alert was sent from the Bus Alarm App.`;
+
+    await SMS.sendSMSAsync(numbers, message);
+
+  } catch (err) {
+    console.log(err);
+    alert("Failed to send SOS.");
+  }
+};
 
   const saveContacts = async () => {
     try {
@@ -213,7 +280,9 @@ export default function EmergencyScreen() {
             )}
           </View>
 
-          <TouchableOpacity style={styles.sosButton}>
+          <TouchableOpacity 
+          style={styles.sosButton}
+          onPress={sendSOS}>
             <Text style={styles.sosText}>SOS</Text>
           </TouchableOpacity>
           <Text style={styles.hold}>Hold for 3 seconds</Text>

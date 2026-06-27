@@ -1,21 +1,5 @@
-import { View, Text, StyleSheet } from "react-native";
+import OfflineScreen from "../screens/OfflineScreen";
 
-export default function OfflineScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Offline Screen</Text>
-    </View>
-  );
+export default function Offline() {
+  return <OfflineScreen />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  text: {
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-});

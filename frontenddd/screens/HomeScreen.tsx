@@ -351,22 +351,33 @@ useEffect(() => {
   // Add this function inside your HomeScreen component
 const saveTrip = async () => {
   try {
-    if (!user) return;
+    if (!user) {
+      console.log("saveTrip: no user");
+      return;
+    }
 
-    await API.post("/trips", {
-      user: user.id,
-      destination: destinationName,
-      destinationLat,
-      destinationLng,
-      startLat: latitude,
-      startLng: longitude,
-      alarmDistance,
-      stoppedAt: new Date().toISOString(),
-    });
+    if (!destinationName) {
+      console.log("saveTrip: no destination name");
+      return;
+    }
 
-  } catch (err) {
-    console.log("saveTrip error:", err);
-    // Silent fail — don't block the alarm/stop flow
+    const tripPayload = {
+      user: user.id,                                        // ✅ matches schema
+      from: currentLocation || "Unknown Location",          // ✅ required field
+      destination: destinationName,                         // ✅ required field
+      distance: parseFloat(startingDistanceRef.current      // ✅ required field
+                  .toFixed(2)),
+      alarmDistance: alarmDistance,                         // ✅ required field
+    };
+
+    console.log("Saving trip payload:", tripPayload);
+
+    await API.post("/trips", tripPayload);
+
+    console.log("Trip saved successfully");
+
+  } catch (err: any) {
+    console.log("saveTrip error:", err.response?.data || err.message);
   }
 };
 

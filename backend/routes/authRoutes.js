@@ -12,7 +12,6 @@ const {
   getContacts,
 } = require("../controllers/emergencyController");
 
-
 router.post("/register", registerUser);
 
 router.post("/login", loginUser);
