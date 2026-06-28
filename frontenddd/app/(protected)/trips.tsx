@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from "react-native";
-import API from "../services/api";
+import API from "../../services/api";
 
 interface Trip {
   _id: string;
@@ -42,24 +42,45 @@ export default function Trips() {
   }, []);
 
   const loadTrips = async () => {
-    try {
-      const data = await AsyncStorage.getItem("user");
-      if (!data) { setError("Not logged in."); return; }
+  try {
+    const data = await AsyncStorage.getItem("user");
+    if (!data) { setError("Not logged in."); return; }
 
-      const user = JSON.parse(data);
-      console.log("User from storage:", user);
+    const user = JSON.parse(data);
 
-      const res = await API.get(`/trips/${user.id}`);
-      console.log("First trip:", JSON.stringify(res.data[0], null, 2));
+    // This shows the ACTUAL fields, not just "Object"
+    console.log("User from storage:", JSON.stringify(user));
+    console.log("user.id:", user.id);
+    console.log("user._id:", user._id);
 
-      setTrips(res.data);
-    } catch (err: any) {
-      console.log("Trip Error:", err.response?.data || err.message);
-      setError("Failed to load trips.");
-    } finally {
-      setLoading(false);
+    // Use whichever field exists
+    const userId = user.id ?? user._id;
+
+    if (!userId) {
+      setError("User ID missing. Please log out and log in again.");
+      return;
     }
-  };
+
+    console.log("Fetching trips for userId:", userId);
+
+    const res = await API.get(`/trips/${userId}`);
+
+    console.log("Total trips returned:", res.data.length);
+
+    if (res.data.length > 0) {
+      console.log("First trip:", JSON.stringify(res.data[0], null, 2));
+    } else {
+      console.log("No trips found for this user yet.");
+    }
+
+    setTrips(res.data);
+  } catch (err: any) {
+    console.log("Trip Error:", err.response?.data || err.message);
+    setError("Failed to load trips.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (loading) {
     return (
@@ -112,6 +133,7 @@ export default function Trips() {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop :90,
     flex: 1,
     padding: 20,
     backgroundColor: "#FFF8F0",

@@ -1,39 +1,12 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import 'react-native-reanimated';
+// app/_layout.tsx — ROOT layout
+// No hamburger here. Just a plain Stack.
+// Public screens (login, signup, welcome) get no menu.
+// Protected screens get menu via (protected)/_layout.tsx
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
+import { Stack } from "expo-router";
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-         <Stack>
-      <Stack.Screen
-        name="offline"
-        options={{ headerShown: false }}
-      />
-
-      <Stack.Screen
-        name="trips"
-        options={{ headerShown: false }}
-      />
-    <Stack.Screen
-        name="emergency"
-        options={{ headerShown: false }}
-      />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <Stack screenOptions={{ headerShown: false }} />
   );
 }

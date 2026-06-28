@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import API from "../services/api";
 
-import SideMenu from "../components/SideMenu";
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack } from "expo-router";
 
@@ -90,9 +88,6 @@ const [alarmVolume, setAlarmVolume] = useState(0.8);
   const startingDistanceRef = useRef(0);
   const locationWatcherRef = useRef<Location.LocationSubscription | null>(null);
   const alarmSoundRef = useRef<Audio.Sound | null>(null); 
-
-
-  const [menuVisible, setMenuVisible] = useState(false);
 
 
   const [user, setUser] =  useState<User | null>(null);
@@ -496,40 +491,12 @@ if (!alarmKm) {
 
   return (
     <>
-    <Stack.Screen
-    options={{
-      headerShown: false,
-    }}
-  />
     <ScrollView
       style={styles.scrollContainer}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
 
-     <TouchableOpacity
-  onPress={() => setMenuVisible(!menuVisible)}
-  style={{
-    position: "absolute",
-    top: 50,
-    left: 20,
-    zIndex: 9999,
-  }}
->
-  <Text
-    style={{
-      fontSize: 32,
-      fontWeight: "bold",
-    }}
-  >
-    ☰
-  </Text>
-</TouchableOpacity>
-
-<SideMenu
-  visible={menuVisible}
-  onClose={() => setMenuVisible(false)}
-/>
 
     
       {/* Header */}

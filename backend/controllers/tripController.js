@@ -24,6 +24,8 @@ const getTrips = async (req, res) => {
       createdAt: -1,
     });
 
+    console.log("Trips found:", trips);
+
     res.json(trips);
 
   } catch (err) {

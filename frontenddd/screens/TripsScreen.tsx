@@ -39,7 +39,7 @@ export default function TripsScreen() {
       const user = JSON.parse(data);
 
       // Debug: log what user object looks like so you can confirm .id exists
-      console.log("User from storage:", user);
+      console.log("User from storage:", JSON.stringify(user));
 
       const res = await API.get(`/trips/${user.id}`);
 
@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#FFF8F0",
+    paddingTop: 80,
   },
   center: {
     flex: 1,

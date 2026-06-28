@@ -16,10 +16,10 @@ export default function Alarm() {
   const [volume, setVolume] = useState(0.8);
 
   const sounds = {
-  Bell: require("../assets/bell.mp3"),
-  Siren: require("../assets/siren.mp3"),
-  Beep: require("../assets/beep.mp3"),
-  Voice: require("../assets/voice.mp3"),
+  Bell: require("../../assets/bell.mp3"),
+  Siren: require("../../assets/siren.mp3"),
+  Beep: require("../../assets/beep.mp3"),
+  Voice: require("../../assets/voice.mp3"),
 };
 
   useEffect(() => {
@@ -139,10 +139,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+    paddingTop :90,
     backgroundColor: "#FFF8F0",
   },
 
   title: {
+    paddingTop :30,
     fontSize: 28,
     fontWeight: "bold",
     color: "#8B4513",
